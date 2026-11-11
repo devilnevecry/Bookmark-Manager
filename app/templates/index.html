@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bookmark Manager</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+</head>
+<body data-theme="dark">
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10 20v-6a4 4 0 0 0-4-4V5a5 5 0 0 0-5 5v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a5 5 0 0 0-5-5v6a4 4 0 0 0-4 4z"/>
+                        <circle cx="12" cy="18" r="1"/>
+                    </svg>
+                    <span>Bookmark Manager</span>
+                </div>
+                <div class="theme-toggle" onclick="toggleTheme()" title="Сменить тему">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                    </svg>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-label">Фильтры</div>
+                    <a href="#" class="nav-item active" data-filter="all" onclick="setFilter('all', this)">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                        <span>Все закладки</span>
+                    </a>
+                    <a href="#" class="nav-item" data-filter="favorite" onclick="setFilter('favorite', this)">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14l1.64-.32a.76.76 0 0 0 .85-.85l.32-1.64a1 1 0 0 0-1.28-1.28L17 10l-.32-1.64a1 1 0 0 0-1.28-1.28l-1.64.32a.76.76 0 0 0-.85.85l-.32 1.64a1 1 0 0 0 1.28 1.28zM12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10z"/></svg>
+                        <span>Избранное</span>
+                    </a>
+                    <a href="#" class="nav-item" data-filter="archived" onclick="setFilter('archived', this)">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 4H4l3.89 6.31a2 2 0 0 0 2.22 0L20 4z"/><path d="M17 22h-6a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1z"/></svg>
+                        <span>Архив</span>
+                    </a>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-label">Категории</div>
+                    <div class="category-list" id="categoryList">
+                        <!-- Categories loaded dynamically -->
+                    </div>
+                    <button class="btn-add-category" onclick="openCategoryModal()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Добавить категорию
+                    </button>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-label">Теги</div>
+                    <div class="tag-list" id="tagList">
+                        <!-- Tags loaded dynamically -->
+                    </div>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button class="btn-import-export" onclick="toggleImportExport()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Импорт / Экспорт
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-bar">
+                <div class="search-container">
+                    <input type="text" id="searchInput" placeholder="Поиск по названию, описанию, URL, домену..." oninput="debounce(searchBookmarks, 300)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                </div>
+
+                <div class="sort-controls">
+                    <select id="sortSelect" onchange="sortBookmarks()">
+                        <option value="created_at_desc">По дате (новые)</option>
+                        <option value="created_at_asc">По дате (старые)</option>
+                        <option value="title_asc">По названию (А-Я)</option>
+                        <option value="title_desc">По названию (Я-А)</option>
+                        <option value="domain_asc">По домену</option>
+                    </select>
+                </div>
+
+                <div class="actions">
+                    <button class="btn-primary" onclick="openBookmarkModal()">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Добавить закладку
+                    </button>
+                </div>
+            </header>
+
+            <div class="content-area" id="contentArea">
+                <!-- Empty state -->
+                <div class="empty-state" id="emptyState" style="display: none;">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3">
+                        <path d="M10 20v-6a4 4 0 0 0-4-4V5a5 5 0 0 0-5 5v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a5 5 0 0 0-5-5v6a4 4 0 0 0-4 4z"/>
+                        <circle cx="12" cy="18" r="1"/>
+                    </svg>
+                    <h3>Закладок не найдено</h3>
+                    <p>Добавьте свою первую закладку или импортируйте из браузера.</p>
+                    <button class="btn-primary" onclick="openBookmarkModal()">Добавить закладку</button>
+                </div>
+
+                <!-- Bookmarks grid -->
+                <div class="bookmarks-grid" id="bookmarksGrid">
+                    <!-- Bookmark cards loaded dynamically -->
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination" id="pagination" style="display: none;">
+                    <button onclick="changePage(-1)" id="btnPrev">‹ Назад</button>
+                    <span id="pageInfo"></span>
+                    <button onclick="changePage(1)" id="btnNext">Вперед ›</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Import/Export Modal -->
+    <div class="modal-overlay" id="importExportModal" style="display: none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Импорт / Экспорт закладок</h3>
+                <button class="modal-close" onclick="closeImportExport()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="ie-section">
+                    <h4>Экспорт</h4>
+                    <p>Скачать все закладки в формате Netscape Bookmark HTML</p>
+                    <button class="btn-outline" onclick="exportBookmarks()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        Экспортировать HTML
+                    </button>
+                </div>
+
+                <div class="ie-section">
+                    <h4>Импорт</h4>
+                    <p>Загрузить файл закладок браузера (Netscape HTML)</p>
+                    <form id="importForm" enctype="multipart/form-data">
+                        <input type="file" id="importFile" accept=".html,.htm" required>
+                        <button type="submit" class="btn-primary" onclick="importBookmarks(event)">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Импортировать
+                        </button>
+                    </form>
+                    <div id="importResult" class="import-result"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bookmark Modal -->
+    <div class="modal-overlay" id="bookmarkModal" style="display: none;">
+        <div class="modal modal-lg">
+            <div class="modal-header">
+                <h3 id="modalTitle">Добавить закладку</h3>
+                <button class="modal-close" onclick="closeBookmarkModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="bookmarkForm">
+                    <input type="hidden" id="bookmarkId">
+                    <input type="hidden" id="bookmarkAction" value="create">
+
+                    <div class="form-group">
+                        <label>URL <span class="required">*</span></label>
+                        <input type="url" id="inputUrl" placeholder="https://example.com" required onchange="fetchMetadata()">
+                        <div class="url-help">При добавлении ссылки метаданные получаться автоматически</div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Название</label>
+                            <input type="text" id="inputTitle" placeholder="Название страницы">
+                        </div>
+                        <div class="form-group">
+                            <label>Категория</label>
+                            <select id="inputCategory">
+                                <option value="">Без категории</option>
+                                <!-- Categories loaded dynamically -->
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Описание</label>
+                        <textarea id="inputDescription" rows="3" placeholder="Краткое описание закладки"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Теги (через запятую)</label>
+                        <input type="text" id="inputTags" placeholder="тег1, тег2, важное">
+                    </div>
+
+                    <div class="form-group form-check">
+                        <input type="checkbox" id="inputFavorite">
+                        <label for="inputFavorite">Добавить в избранное</label>
+                    </div>
+
+                    <div id="metadataPreview" class="metadata-preview" style="display: none;">
+                        <h5>Найденные метаданные</h5>
+                        <div id="metadataContent"></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-outline" onclick="closeBookmarkModal()">Отмена</button>
+                <button type="button" class="btn-primary" onclick="saveBookmark()">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Modal -->
+    <div class="modal-overlay" id="categoryModal" style="display: none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="categoryModalTitle">Добавить категорию</h3>
+                <button class="modal-close" onclick="closeCategoryModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="categoryForm">
+                    <input type="hidden" id="categoryId">
+                    <div class="form-group">
+                        <label>Название <span class="required">*</span></label>
+                        <input type="text" id="categoryName" required placeholder="Название категории">
+                    </div>
+                    <div class="form-group">
+                        <label>Описание</label>
+                        <input type="text" id="categoryDescription" placeholder="Описание категории">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-outline" onclick="closeCategoryModal()">Отмена</button>
+                <button type="button" class="btn-primary" onclick="saveCategory()">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast notifications -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="{{ url_for('static', path='js/app.js') }}"></script>
+</body>
+</html>
